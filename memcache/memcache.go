@@ -5,7 +5,11 @@ import (
 	"github.com/bradfitz/gomemcache/memcache"
 )
 
+// Error alias'
 var ErrCacheMiss = memcache.ErrCacheMiss
+
+// Type alias'
+type Item = memcache.Item
 
 func New(namespace string, dsns ...string) *Memcache {
 
