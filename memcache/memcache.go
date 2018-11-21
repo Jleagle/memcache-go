@@ -5,6 +5,8 @@ import (
 	"github.com/bradfitz/gomemcache/memcache"
 )
 
+var ErrCacheMiss = memcache.ErrCacheMiss
+
 func New(namespace string, dsns ...string) *Memcache {
 
 	mc := new(Memcache)
