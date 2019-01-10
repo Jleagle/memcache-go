@@ -3,6 +3,7 @@ package memcache
 import (
 	"encoding/json"
 	"github.com/bradfitz/gomemcache/memcache"
+	"io"
 )
 
 // Error alias'
@@ -59,7 +60,7 @@ func (mc Memcache) GetSetInt(item memcache.Item, f func() (j int, err error)) (c
 
 	err = mc.Get(item.Key, &count)
 
-	if err != nil && (err == memcache.ErrCacheMiss || err.Error() == "EOF") {
+	if err == memcache.ErrCacheMiss || err == io.EOF {
 
 		count, err := f()
 		if err != nil {
@@ -77,7 +78,7 @@ func (mc Memcache) GetSetString(item memcache.Item, f func() (j string, err erro
 
 	err = mc.Get(item.Key, &s)
 
-	if err != nil && (err == memcache.ErrCacheMiss || err.Error() == "EOF") {
+	if err == memcache.ErrCacheMiss || err == io.EOF {
 
 		s, err := f()
 		if err != nil {
