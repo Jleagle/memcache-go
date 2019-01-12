@@ -14,6 +14,11 @@ type Item = memcache.Item
 
 func New(namespace string, dsns ...string) *Memcache {
 
+	// Fallback DSN
+	if len(dsns) == 0 {
+		dsns = []string{"localhost:11211"}
+	}
+
 	mc := new(Memcache)
 	mc.client = memcache.New(dsns...)
 	mc.namespace = namespace
