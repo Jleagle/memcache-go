@@ -2,14 +2,19 @@ package memcache
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/bradfitz/gomemcache/memcache"
 	"io"
+	"reflect"
 )
 
-// Error alias'
-var ErrCacheMiss = memcache.ErrCacheMiss
+//noinspection GoUnusedGlobalVariable
+var (
+	ErrCacheMiss    = memcache.ErrCacheMiss
+	ErrNotPointer   = errors.New("value ust be a pointer")
+	ErrInvalidTypes = errors.New("types must match")
+)
 
-// Type alias'
 type Item = memcache.Item
 
 func New(namespace string, dsns ...string) *Memcache {
@@ -61,40 +66,31 @@ func (mc Memcache) SetItem(item memcache.Item) error {
 	return mc.Set(item.Key, item.Value, item.Expiration)
 }
 
-func (mc Memcache) GetSetInt(item memcache.Item, f func() (j int, err error)) (count int, err error) {
+func (mc Memcache) GetSet(key string, expiration int32, value interface{}, f func() (j interface{}, err error)) error {
 
-	err = mc.Get(item.Key, &count)
-
-	if err == memcache.ErrCacheMiss || err == io.EOF {
-
-		count, err := f()
-		if err != nil {
-			return count, err
-		}
-
-		err = mc.Set(item.Key, count, item.Expiration)
-		return count, err
+	if reflect.TypeOf(value).Kind() != reflect.Ptr {
+		return ErrNotPointer
 	}
 
-	return count, err
-}
-
-func (mc Memcache) GetSetString(item memcache.Item, f func() (j string, err error)) (s string, err error) {
-
-	err = mc.Get(item.Key, &s)
+	err := mc.Get(key, value)
 
 	if err == memcache.ErrCacheMiss || err == io.EOF {
 
 		s, err := f()
 		if err != nil {
-			return s, err
+			return err
 		}
 
-		err = mc.Set(item.Key, s, item.Expiration)
-		return s, err
+		if reflect.TypeOf(s) != reflect.TypeOf(value).Elem() {
+			return ErrInvalidTypes
+		}
+
+		err = setToPointer(s, value)
+
+		return mc.Set(key, s, expiration)
 	}
 
-	return s, err
+	return err
 }
 
 func (mc Memcache) Delete(item memcache.Item) (err error) {
@@ -127,4 +123,14 @@ func (mc Memcache) Decrement(key string, delta ...uint64) (err error) {
 	_, err = mc.client.Decrement(mc.namespace+key, delta[0])
 
 	return err
+}
+
+func setToPointer(in interface{}, out interface{}) error {
+
+	b, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(b, out)
 }
