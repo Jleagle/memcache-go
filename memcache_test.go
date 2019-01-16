@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestSum(t *testing.T) {
+func Test(t *testing.T) {
 
 	// Set
 	item := memcache.Item{
