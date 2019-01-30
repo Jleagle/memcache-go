@@ -66,7 +66,7 @@ func (mc Memcache) SetItem(item memcache.Item) error {
 	return mc.Set(item.Key, item.Value, item.Expiration)
 }
 
-func (mc Memcache) GetSet(key string, expiration int32, value interface{}, f func() (j interface{}, err error)) error {
+func (mc Memcache) GetSet(key string, expiration int32, value interface{}, f func() (interface{}, error)) error {
 
 	if reflect.TypeOf(value).Kind() != reflect.Ptr {
 		return ErrNotPointer
