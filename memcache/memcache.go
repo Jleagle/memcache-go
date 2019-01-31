@@ -12,7 +12,9 @@ import (
 
 //noinspection GoUnusedGlobalVariable
 var (
-	ErrCacheMiss    = memcache.ErrCacheMiss
+	ErrCacheMiss = memcache.ErrCacheMiss
+	ErrNotStored = memcache.ErrNotStored
+
 	ErrNotPointer   = errors.New("value ust be a pointer")
 	ErrInvalidTypes = errors.New("types must match")
 )
@@ -51,7 +53,7 @@ func (mc Memcache) SetBackoff(backoff backoff.BackOff) {
 // memcache cache miss. The key must be at most 250 bytes in length.
 func (mc Memcache) Get(key string, i interface{}) (err error) {
 
-	var item *memcache.Item
+	var item *Item
 
 	operation := func() (err error) {
 
@@ -78,7 +80,7 @@ func (mc Memcache) Set(key string, value interface{}, expiration int32) error {
 		return err
 	}
 
-	item := new(memcache.Item)
+	item := new(Item)
 	item.Key = mc.namespace + key
 	item.Value = bytes
 	item.Expiration = expiration
@@ -90,8 +92,52 @@ func (mc Memcache) Set(key string, value interface{}, expiration int32) error {
 	return backoff.Retry(operation, mc.backoff)
 }
 
-func (mc Memcache) SetItem(item memcache.Item) error {
+func (mc Memcache) SetItem(item Item) error {
 	return mc.Set(item.Key, item.Value, item.Expiration)
+}
+
+// Touch updates the expiry for the given key. The seconds parameter is either
+// a Unix timestamp or, if seconds is less than 1 month, the number of seconds
+// into the future at which time the item will expire. Zero means the item has
+// no expiration time. ErrCacheMiss is returned if the key is not in the cache.
+// The key must be at most 250 bytes in length.
+func (mc Memcache) Touch(key string, seconds int32) error {
+
+	operation := func() (err error) {
+		err = mc.client.Touch(mc.namespace+key, seconds)
+		if err == ErrCacheMiss {
+			return backoff.Permanent(err)
+		}
+		return err
+	}
+
+	return backoff.Retry(operation, mc.backoff)
+}
+
+// Add writes the given item, if no value already exists for its
+// key. ErrNotStored is returned if that condition is not met.
+func (mc Memcache) AddItem(item *Item) error {
+
+	operation := func() (err error) {
+		err = mc.client.Add(item)
+		if err == ErrNotStored {
+			return backoff.Permanent(err)
+		}
+		return err
+	}
+
+	return backoff.Retry(operation, mc.backoff)
+}
+
+// Replace writes the given item, but only if the server *does*
+// already hold data for this key
+func (mc Memcache) ReplaceItem(item *Item) error {
+
+	operation := func() (err error) {
+		return mc.client.Replace(item)
+	}
+
+	return backoff.Retry(operation, mc.backoff)
 }
 
 func (mc Memcache) GetSet(key string, expiration int32, value interface{}, f func() (interface{}, error)) error {
@@ -123,7 +169,7 @@ func (mc Memcache) GetSet(key string, expiration int32, value interface{}, f fun
 
 // Delete deletes the item with the provided key. The error ErrCacheMiss is
 // returned if the item didn't already exist in the cache.
-func (mc Memcache) Delete(item memcache.Item) (err error) {
+func (mc Memcache) Delete(item Item) (err error) {
 
 	operation := func() (err error) {
 		err = mc.client.Delete(mc.namespace + item.Key)
