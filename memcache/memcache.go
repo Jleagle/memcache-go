@@ -47,7 +47,8 @@ func (mc Memcache) SetBackoff(backoff backoff.BackOff) {
 	mc.backoff = backoff
 }
 
-// Returns []byte
+// Get gets the item for the given key. ErrCacheMiss is returned for a
+// memcache cache miss. The key must be at most 250 bytes in length.
 func (mc Memcache) Get(key string, i interface{}) (err error) {
 
 	var item *memcache.Item
@@ -55,6 +56,9 @@ func (mc Memcache) Get(key string, i interface{}) (err error) {
 	operation := func() (err error) {
 
 		item, err = mc.client.Get(mc.namespace + key)
+		if err == ErrCacheMiss {
+			return backoff.Permanent(err)
+		}
 		return err
 	}
 
@@ -66,6 +70,7 @@ func (mc Memcache) Get(key string, i interface{}) (err error) {
 	return json.Unmarshal(item.Value, i)
 }
 
+// Set writes the given item, unconditionally.
 func (mc Memcache) Set(key string, value interface{}, expiration int32) error {
 
 	bytes, err := json.Marshal(value)
@@ -116,15 +121,22 @@ func (mc Memcache) GetSet(key string, expiration int32, value interface{}, f fun
 	return err
 }
 
+// Delete deletes the item with the provided key. The error ErrCacheMiss is
+// returned if the item didn't already exist in the cache.
 func (mc Memcache) Delete(item memcache.Item) (err error) {
 
 	operation := func() (err error) {
-		return mc.client.Delete(mc.namespace + item.Key)
+		err = mc.client.Delete(mc.namespace + item.Key)
+		if err == ErrCacheMiss {
+			return backoff.Permanent(err)
+		}
+		return err
 	}
 
 	return backoff.Retry(operation, mc.backoff)
 }
 
+// DeleteAll deletes all items in the cache.
 func (mc Memcache) DeleteAll() (err error) {
 
 	operation := func() (err error) {
@@ -134,20 +146,37 @@ func (mc Memcache) DeleteAll() (err error) {
 	return backoff.Retry(operation, mc.backoff)
 }
 
+// Increment atomically increments key by delta. The return value is
+// the new value after being incremented or an error. If the value
+// didn't exist in memcached the error is ErrCacheMiss. The value in
+// memcached must be an decimal number, or an error will be returned.
+// On 64-bit overflow, the new value wraps around.
 func (mc Memcache) Increment(key string, delta uint64) (newValue uint64, err error) {
 
 	operation := func() (err error) {
 		newValue, err = mc.client.Increment(mc.namespace+key, delta)
+		if err == ErrCacheMiss {
+			return backoff.Permanent(err)
+		}
 		return err
 	}
 
 	return newValue, backoff.Retry(operation, mc.backoff)
 }
 
+// Decrement atomically decrements key by delta. The return value is
+// the new value after being decremented or an error. If the value
+// didn't exist in memcached the error is ErrCacheMiss. The value in
+// memcached must be an decimal number, or an error will be returned.
+// On underflow, the new value is capped at zero and does not wrap
+// around.
 func (mc Memcache) Decrement(key string, delta uint64) (newValue uint64, err error) {
 
 	operation := func() (err error) {
 		newValue, err = mc.client.Decrement(mc.namespace+key, delta)
+		if err == ErrCacheMiss {
+			return backoff.Permanent(err)
+		}
 		return err
 	}
 
