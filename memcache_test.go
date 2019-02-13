@@ -7,6 +7,8 @@ import (
 
 func Test(t *testing.T) {
 
+	mc := memcache.New("")
+
 	// Set
 	item := memcache.Item{
 		Key:        "test",
@@ -14,9 +16,7 @@ func Test(t *testing.T) {
 		Expiration: 10,
 	}
 
-	mc := memcache.New("")
-
-	err := mc.SetItem(&item)
+	err := mc.Set(item.Key, item.Value, item.Expiration)
 	if err != nil {
 		t.Error(err)
 	}
