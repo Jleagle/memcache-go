@@ -92,8 +92,15 @@ func (mc Memcache) Set(key string, value interface{}, expiration int32) error {
 	return backoff.Retry(operation, mc.backoff)
 }
 
-func (mc Memcache) SetItem(item Item) error {
-	return mc.Set(item.Key, item.Value, item.Expiration)
+// Get gets the item for the given key. ErrCacheMiss is returned for a
+// memcache cache miss. The key must be at most 250 bytes in length.
+func (mc Memcache) GetItem(key string) (*Item, error) {
+	return mc.client.Get(key)
+}
+
+// Set writes the given item, unconditionally.
+func (mc Memcache) SetItem(item *Item) error {
+	return mc.client.Set(item)
 }
 
 // Touch updates the expiry for the given key. The seconds parameter is either

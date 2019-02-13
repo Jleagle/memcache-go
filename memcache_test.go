@@ -16,7 +16,7 @@ func Test(t *testing.T) {
 
 	mc := memcache.New("")
 
-	err := mc.SetItem(item)
+	err := mc.SetItem(&item)
 	if err != nil {
 		t.Error(err)
 	}
