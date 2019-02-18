@@ -51,49 +51,6 @@ func (mc Memcache) SetBackoff(backoff backoff.BackOff) {
 
 // Get gets the item for the given key. ErrCacheMiss is returned for a
 // memcache cache miss. The key must be at most 250 bytes in length.
-func (mc Memcache) GetInterface(key string, i interface{}) (err error) {
-
-	var item *Item
-
-	operation := func() (err error) {
-
-		item, err = mc.client.Get(mc.namespace + key)
-		if err == ErrCacheMiss {
-			return backoff.Permanent(err)
-		}
-		return err
-	}
-
-	err = backoff.Retry(operation, mc.backoff)
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(item.Value, i)
-}
-
-// Set writes the given item, unconditionally.
-func (mc Memcache) SetInterface(key string, value interface{}, expiration int32) error {
-
-	bytes, err := json.Marshal(value)
-	if err != nil {
-		return err
-	}
-
-	item := new(Item)
-	item.Key = mc.namespace + key
-	item.Value = bytes
-	item.Expiration = expiration
-
-	operation := func() (err error) {
-		return mc.client.Set(item)
-	}
-
-	return backoff.Retry(operation, mc.backoff)
-}
-
-// Get gets the item for the given key. ErrCacheMiss is returned for a
-// memcache cache miss. The key must be at most 250 bytes in length.
 func (mc Memcache) Get(key string) (*Item, error) {
 	return mc.client.Get(key)
 }
@@ -145,33 +102,6 @@ func (mc Memcache) Replace(item *Item) error {
 	}
 
 	return backoff.Retry(operation, mc.backoff)
-}
-
-func (mc Memcache) GetSetInterface(key string, expiration int32, value interface{}, f func() (interface{}, error)) error {
-
-	if reflect.TypeOf(value).Kind() != reflect.Ptr {
-		return ErrNotPointer
-	}
-
-	err := mc.GetInterface(key, value)
-
-	if err == memcache.ErrCacheMiss || err == io.EOF {
-
-		s, err := f()
-		if err != nil {
-			return err
-		}
-
-		if reflect.TypeOf(s) != reflect.TypeOf(value).Elem() {
-			return ErrInvalidTypes
-		}
-
-		err = setToPointer(s, value)
-
-		return mc.SetInterface(key, s, expiration)
-	}
-
-	return err
 }
 
 // Delete deletes the item with the provided key. The error ErrCacheMiss is
@@ -234,6 +164,76 @@ func (mc Memcache) Decrement(key string, delta uint64) (newValue uint64, err err
 	}
 
 	return newValue, backoff.Retry(operation, mc.backoff)
+}
+
+// Get gets the item for the given key. ErrCacheMiss is returned for a
+// memcache cache miss. The key must be at most 250 bytes in length.
+func (mc Memcache) GetInterface(key string, i interface{}) (err error) {
+
+	var item *Item
+
+	operation := func() (err error) {
+
+		item, err = mc.client.Get(mc.namespace + key)
+		if err == ErrCacheMiss {
+			return backoff.Permanent(err)
+		}
+		return err
+	}
+
+	err = backoff.Retry(operation, mc.backoff)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(item.Value, i)
+}
+
+// Set writes the given item, unconditionally.
+func (mc Memcache) SetInterface(key string, value interface{}, expiration int32) error {
+
+	bytes, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+
+	item := new(Item)
+	item.Key = mc.namespace + key
+	item.Value = bytes
+	item.Expiration = expiration
+
+	operation := func() (err error) {
+		return mc.client.Set(item)
+	}
+
+	return backoff.Retry(operation, mc.backoff)
+}
+
+func (mc Memcache) GetSetInterface(key string, expiration int32, value interface{}, f func() (interface{}, error)) error {
+
+	if reflect.TypeOf(value).Kind() != reflect.Ptr {
+		return ErrNotPointer
+	}
+
+	err := mc.GetInterface(key, value)
+
+	if err == memcache.ErrCacheMiss || err == io.EOF {
+
+		s, err := f()
+		if err != nil {
+			return err
+		}
+
+		if reflect.TypeOf(s) != reflect.TypeOf(value).Elem() {
+			return ErrInvalidTypes
+		}
+
+		err = setToPointer(s, value)
+
+		return mc.SetInterface(key, s, expiration)
+	}
+
+	return err
 }
 
 func setToPointer(in interface{}, out interface{}) error {
