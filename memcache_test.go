@@ -16,7 +16,7 @@ func Test(t *testing.T) {
 		Expiration: 10,
 	}
 
-	err := mc.Set(item.Key, item.Value, item.Expiration)
+	err := mc.SetInterface(item.Key, item.Value, item.Expiration)
 	if err != nil {
 		t.Error(err)
 	}
@@ -24,7 +24,7 @@ func Test(t *testing.T) {
 	// Get
 	var b []byte
 
-	err = mc.Get(item.Key, &b)
+	err = mc.GetInterface(item.Key, &b)
 	if err != nil {
 		t.Error(err)
 	}
@@ -42,7 +42,7 @@ func Test(t *testing.T) {
 
 	var b2 []byte
 
-	err = mc.GetSet(item2.Key, item2.Expiration, &b2, func() (k interface{}, err error) {
+	err = mc.GetSetInterface(item2.Key, item2.Expiration, &b2, func() (k interface{}, err error) {
 
 		return []byte("value from database"), nil
 

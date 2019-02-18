@@ -51,7 +51,7 @@ func (mc Memcache) SetBackoff(backoff backoff.BackOff) {
 
 // Get gets the item for the given key. ErrCacheMiss is returned for a
 // memcache cache miss. The key must be at most 250 bytes in length.
-func (mc Memcache) Get(key string, i interface{}) (err error) {
+func (mc Memcache) GetInterface(key string, i interface{}) (err error) {
 
 	var item *Item
 
@@ -73,7 +73,7 @@ func (mc Memcache) Get(key string, i interface{}) (err error) {
 }
 
 // Set writes the given item, unconditionally.
-func (mc Memcache) Set(key string, value interface{}, expiration int32) error {
+func (mc Memcache) SetInterface(key string, value interface{}, expiration int32) error {
 
 	bytes, err := json.Marshal(value)
 	if err != nil {
@@ -94,12 +94,12 @@ func (mc Memcache) Set(key string, value interface{}, expiration int32) error {
 
 // Get gets the item for the given key. ErrCacheMiss is returned for a
 // memcache cache miss. The key must be at most 250 bytes in length.
-func (mc Memcache) GetItem(key string) (*Item, error) {
+func (mc Memcache) Get(key string) (*Item, error) {
 	return mc.client.Get(key)
 }
 
 // Set writes the given item, unconditionally.
-func (mc Memcache) SetItem(item *Item) error {
+func (mc Memcache) Set(item *Item) error {
 	return mc.client.Set(item)
 }
 
@@ -123,7 +123,7 @@ func (mc Memcache) Touch(key string, seconds int32) error {
 
 // Add writes the given item, if no value already exists for its
 // key. ErrNotStored is returned if that condition is not met.
-func (mc Memcache) AddItem(item *Item) error {
+func (mc Memcache) Add(item *Item) error {
 
 	operation := func() (err error) {
 		err = mc.client.Add(item)
@@ -138,7 +138,7 @@ func (mc Memcache) AddItem(item *Item) error {
 
 // Replace writes the given item, but only if the server *does*
 // already hold data for this key
-func (mc Memcache) ReplaceItem(item *Item) error {
+func (mc Memcache) Replace(item *Item) error {
 
 	operation := func() (err error) {
 		return mc.client.Replace(item)
@@ -147,13 +147,13 @@ func (mc Memcache) ReplaceItem(item *Item) error {
 	return backoff.Retry(operation, mc.backoff)
 }
 
-func (mc Memcache) GetSet(key string, expiration int32, value interface{}, f func() (interface{}, error)) error {
+func (mc Memcache) GetSetInterface(key string, expiration int32, value interface{}, f func() (interface{}, error)) error {
 
 	if reflect.TypeOf(value).Kind() != reflect.Ptr {
 		return ErrNotPointer
 	}
 
-	err := mc.Get(key, value)
+	err := mc.GetInterface(key, value)
 
 	if err == memcache.ErrCacheMiss || err == io.EOF {
 
@@ -168,7 +168,7 @@ func (mc Memcache) GetSet(key string, expiration int32, value interface{}, f fun
 
 		err = setToPointer(s, value)
 
-		return mc.Set(key, s, expiration)
+		return mc.SetInterface(key, s, expiration)
 	}
 
 	return err
@@ -176,10 +176,10 @@ func (mc Memcache) GetSet(key string, expiration int32, value interface{}, f fun
 
 // Delete deletes the item with the provided key. The error ErrCacheMiss is
 // returned if the item didn't already exist in the cache.
-func (mc Memcache) Delete(item Item) (err error) {
+func (mc Memcache) Delete(key string) (err error) {
 
 	operation := func() (err error) {
-		err = mc.client.Delete(mc.namespace + item.Key)
+		err = mc.client.Delete(mc.namespace + key)
 		if err == ErrCacheMiss {
 			return backoff.Permanent(err)
 		}
