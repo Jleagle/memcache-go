@@ -1,4 +1,4 @@
+github.com/Jleagle/backoff v2.1.1+incompatible h1:/qjuGHkPqpuVqTJMpZvvBiiia2MpEjABV7dzGlAbzp0=
+github.com/Jleagle/backoff v2.1.1+incompatible/go.mod h1:LnNZR6y//LaCjSCiFu40aF9/bsdUDyjm0G3KPGFRZ8s=
 github.com/bradfitz/gomemcache v0.0.0-20180710155616-bc664df96737 h1:rRISKWyXfVxvoa702s91Zl5oREZTrR3yv+tXrrX7G/g=
 github.com/bradfitz/gomemcache v0.0.0-20180710155616-bc664df96737/go.mod h1:PmM6Mmwb0LSuEubjR8N7PtNe1KxZLtOUHtbeikc5h60=
-github.com/cenkalti/backoff v2.1.1+incompatible h1:tKJnvO2kl0zmb/jA5UKAt4VoEVw1qxKWjE/Bpp46npY=
-github.com/cenkalti/backoff v2.1.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=

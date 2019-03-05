@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/Jleagle/backoff"
 	"github.com/bradfitz/gomemcache/memcache"
-	"github.com/cenkalti/backoff"
 )
 
 //noinspection GoUnusedGlobalVariable
