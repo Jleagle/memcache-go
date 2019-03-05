@@ -3,11 +3,12 @@ package memcache
 import (
 	"encoding/json"
 	"errors"
-	"github.com/bradfitz/gomemcache/memcache"
-	"github.com/cenkalti/backoff"
 	"io"
 	"reflect"
 	"time"
+
+	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/cenkalti/backoff"
 )
 
 //noinspection GoUnusedGlobalVariable
