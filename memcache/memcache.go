@@ -29,13 +29,9 @@ func New(namespace string, servers ...string) *Memcache {
 		servers = []string{"localhost:11211"}
 	}
 
-	policy := backoff.NewExponentialBackOff()
-	policy.InitialInterval = 100 * time.Millisecond
-
 	mc := new(Memcache)
 	mc.client = memcache.New(servers...)
 	mc.namespace = namespace
-	mc.backoff = backoff.WithMaxRetries(policy, 5)
 
 	return mc
 }
@@ -44,6 +40,18 @@ type Memcache struct {
 	namespace string
 	client    *memcache.Client
 	backoff   backoff.BackOff
+}
+
+func (mc Memcache) getBackoff() backoff.BackOff {
+
+	if mc.backoff != nil {
+		return mc.backoff
+	}
+
+	policy := backoff.NewExponentialBackOff()
+	policy.InitialInterval = 100 * time.Millisecond
+
+	return backoff.WithMaxRetries(policy, 3)
 }
 
 func (mc Memcache) SetBackoff(backoff backoff.BackOff) {
@@ -76,7 +84,7 @@ func (mc Memcache) Touch(key string, seconds int32) error {
 		return err
 	}
 
-	return backoff.Retry(operation, mc.backoff)
+	return backoff.Retry(operation, mc.getBackoff())
 }
 
 // Add writes the given item, if no value already exists for its
@@ -91,7 +99,7 @@ func (mc Memcache) Add(item *Item) error {
 		return err
 	}
 
-	return backoff.Retry(operation, mc.backoff)
+	return backoff.Retry(operation, mc.getBackoff())
 }
 
 // Replace writes the given item, but only if the server *does*
@@ -102,7 +110,7 @@ func (mc Memcache) Replace(item *Item) error {
 		return mc.client.Replace(item)
 	}
 
-	return backoff.Retry(operation, mc.backoff)
+	return backoff.Retry(operation, mc.getBackoff())
 }
 
 // Delete deletes the item with the provided key. The error ErrCacheMiss is
@@ -117,7 +125,7 @@ func (mc Memcache) Delete(key string) (err error) {
 		return err
 	}
 
-	return backoff.Retry(operation, mc.backoff)
+	return backoff.Retry(operation, mc.getBackoff())
 }
 
 // DeleteAll deletes all items in the cache.
@@ -127,7 +135,7 @@ func (mc Memcache) DeleteAll() (err error) {
 		return mc.client.DeleteAll()
 	}
 
-	return backoff.Retry(operation, mc.backoff)
+	return backoff.Retry(operation, mc.getBackoff())
 }
 
 // Increment atomically increments key by delta. The return value is
@@ -145,7 +153,7 @@ func (mc Memcache) Increment(key string, delta uint64) (newValue uint64, err err
 		return err
 	}
 
-	return newValue, backoff.Retry(operation, mc.backoff)
+	return newValue, backoff.Retry(operation, mc.getBackoff())
 }
 
 // Decrement atomically decrements key by delta. The return value is
@@ -164,7 +172,7 @@ func (mc Memcache) Decrement(key string, delta uint64) (newValue uint64, err err
 		return err
 	}
 
-	return newValue, backoff.Retry(operation, mc.backoff)
+	return newValue, backoff.Retry(operation, mc.getBackoff())
 }
 
 // Get gets the item for the given key. ErrCacheMiss is returned for a
@@ -182,7 +190,7 @@ func (mc Memcache) GetInterface(key string, i interface{}) (err error) {
 		return err
 	}
 
-	err = backoff.Retry(operation, mc.backoff)
+	err = backoff.Retry(operation, mc.getBackoff())
 	if err != nil {
 		return err
 	}
@@ -207,7 +215,7 @@ func (mc Memcache) SetInterface(key string, value interface{}, expiration int32)
 		return mc.client.Set(item)
 	}
 
-	return backoff.Retry(operation, mc.backoff)
+	return backoff.Retry(operation, mc.getBackoff())
 }
 
 func (mc Memcache) GetSetInterface(key string, expiration int32, value interface{}, f func() (interface{}, error)) error {
