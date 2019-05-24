@@ -16,8 +16,7 @@ var (
 	ErrCacheMiss = memcache.ErrCacheMiss
 	ErrNotStored = memcache.ErrNotStored
 
-	ErrNotPointer   = errors.New("value ust be a pointer")
-	ErrInvalidTypes = errors.New("types must match")
+	ErrNotPointer = errors.New("value ust be a pointer")
 )
 
 type Item = memcache.Item
@@ -234,7 +233,7 @@ func (mc Memcache) GetSetInterface(key string, expiration int32, value interface
 		}
 
 		if reflect.TypeOf(s) != reflect.TypeOf(value).Elem() {
-			return ErrInvalidTypes
+			return errors.New(reflect.TypeOf(s).String() + " does not match " + reflect.TypeOf(value).Elem().String())
 		}
 
 		err = setToPointer(s, value)
