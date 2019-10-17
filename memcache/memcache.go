@@ -16,7 +16,7 @@ var (
 	ErrCacheMiss = memcache.ErrCacheMiss
 	ErrNotStored = memcache.ErrNotStored
 
-	ErrNotPointer = errors.New("value ust be a pointer")
+	ErrNotPointer = errors.New("value must be a pointer")
 )
 
 type Item = memcache.Item
