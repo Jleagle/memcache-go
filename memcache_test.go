@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/Jleagle/memcache-go/memcache"
 	"testing"
+
+	"github.com/Jleagle/memcache-go/memcache"
 )
 
 func Test(t *testing.T) {
