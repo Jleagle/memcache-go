@@ -1,17 +1,15 @@
-package main
+package memcache
 
 import (
 	"testing"
-
-	"github.com/Jleagle/memcache-go/memcache"
 )
 
 func Test(t *testing.T) {
 
-	mc := memcache.New("")
+	mc := New("")
 
 	// Set
-	item := memcache.Item{
+	item := Item{
 		Key:        "test",
 		Value:      []byte("value"),
 		Expiration: 10,
@@ -35,7 +33,7 @@ func Test(t *testing.T) {
 	}
 
 	// Get Set
-	item2 := memcache.Item{
+	item2 := Item{
 		Key:        "test2",
 		Value:      []byte("value2"),
 		Expiration: 10,
