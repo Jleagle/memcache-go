@@ -129,3 +129,7 @@ func (c Client) DeleteAll() error {
 
 	return c.client.Flush(0)
 }
+
+func (c Client) Close() {
+	c.client.Quit()
+}
