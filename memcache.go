@@ -1,255 +1,131 @@
 package memcache
 
 import (
-	"encoding/json"
 	"errors"
-	"io"
 	"reflect"
-	"time"
 
-	"github.com/bradfitz/gomemcache/memcache"
-	"github.com/cenkalti/backoff/v4"
+	"github.com/memcachier/mc/v3"
 )
 
-//noinspection GoUnusedGlobalVariable
 var (
-	ErrCacheMiss = memcache.ErrCacheMiss
-	ErrNotStored = memcache.ErrNotStored
-
-	ErrNotPointer = errors.New("value must be a pointer")
+	ErrInvalidType = errors.New("value must be a pointer")
+	ErrNoSet       = errors.New("") // Use this to tell GetSet() not to Set()
 )
 
-type Item = memcache.Item
+type Config = mc.Config
 
-func New(namespace string, servers ...string) *Memcache {
+type Client struct {
+	client     *mc.Client
+	namespace  string
+	encoder    Encoder
+	decoder    Decoder
+	servers    string // comma, semicolon or space seperated
+	username   string
+	password   string
+	typeChecks bool
+	config     *Config
+}
 
-	// Fallback DSN
-	if len(servers) == 0 {
-		servers = []string{"localhost:11211"}
+func NewClient(servers string, options ...Option) *Client {
+
+	client := &Client{
+		servers: servers,
+		config:  mc.DefaultConfig(),
+		encoder: JSONEncoder,
+		decoder: JSONDecoder,
 	}
 
-	mc := new(Memcache)
-	mc.client = memcache.New(servers...)
-	mc.namespace = namespace
-
-	return mc
-}
-
-type Memcache struct {
-	namespace string
-	client    *memcache.Client
-	backoff   backoff.BackOff
-}
-
-func (mc Memcache) getBackoff() backoff.BackOff {
-
-	if mc.backoff != nil {
-		return mc.backoff
+	for _, option := range options {
+		option(client)
 	}
 
-	policy := backoff.NewExponentialBackOff()
-	policy.InitialInterval = 100 * time.Millisecond
+	client.client = mc.NewMCwithConfig(client.servers, client.username, client.password, client.config)
 
-	return backoff.WithMaxRetries(policy, 3)
+	return client
 }
 
-func (mc Memcache) SetBackoff(backoff backoff.BackOff) {
-	mc.backoff = backoff
+// Client gives you access to many other memcache calls, inc, dec etc
+func (c Client) Client() *mc.Client {
+	return c.client
 }
 
-// Get gets the item for the given key. ErrCacheMiss is returned for a
-// memcache cache miss. The key must be at most 250 bytes in length.
-func (mc Memcache) Get(key string) (*Item, error) {
-	return mc.client.Get(key)
-}
+func (c Client) Get(key string, out interface{}) (err error) {
 
-// Set writes the given item, unconditionally.
-func (mc Memcache) Set(item *Item) error {
-	return mc.client.Set(item)
-}
-
-// Touch updates the expiry for the given key. The seconds parameter is either
-// a Unix timestamp or, if seconds is less than 1 month, the number of seconds
-// into the future at which time the item will expire. Zero means the item has
-// no expiration time. ErrCacheMiss is returned if the key is not in the cache.
-// The key must be at most 250 bytes in length.
-func (mc Memcache) Touch(key string, seconds int32) error {
-
-	operation := func() (err error) {
-		err = mc.client.Touch(mc.namespace+key, seconds)
-		if err == ErrCacheMiss {
-			return backoff.Permanent(err)
-		}
-		return err
+	if c.typeChecks && reflect.TypeOf(out).Kind() != reflect.Ptr {
+		return ErrInvalidType
 	}
 
-	return backoff.Retry(operation, mc.getBackoff())
-}
-
-// Add writes the given item, if no value already exists for its
-// key. ErrNotStored is returned if that condition is not met.
-func (mc Memcache) Add(item *Item) error {
-
-	operation := func() (err error) {
-		err = mc.client.Add(item)
-		if err == ErrNotStored {
-			return backoff.Permanent(err)
-		}
-		return err
-	}
-
-	return backoff.Retry(operation, mc.getBackoff())
-}
-
-// Replace writes the given item, but only if the server *does*
-// already hold data for this key
-func (mc Memcache) Replace(item *Item) error {
-
-	operation := func() (err error) {
-		return mc.client.Replace(item)
-	}
-
-	return backoff.Retry(operation, mc.getBackoff())
-}
-
-// Delete deletes the item with the provided key. The error ErrCacheMiss is
-// returned if the item didn't already exist in the cache.
-func (mc Memcache) Delete(key string) (err error) {
-
-	operation := func() (err error) {
-		err = mc.client.Delete(mc.namespace + key)
-		if err == ErrCacheMiss {
-			return backoff.Permanent(err)
-		}
-		return err
-	}
-
-	return backoff.Retry(operation, mc.getBackoff())
-}
-
-// DeleteAll deletes all items in the cache.
-func (mc Memcache) DeleteAll() (err error) {
-
-	operation := func() (err error) {
-		return mc.client.DeleteAll()
-	}
-
-	return backoff.Retry(operation, mc.getBackoff())
-}
-
-// Increment atomically increments key by delta. The return value is
-// the new value after being incremented or an error. If the value
-// didn't exist in memcached the error is ErrCacheMiss. The value in
-// memcached must be an decimal number, or an error will be returned.
-// On 64-bit overflow, the new value wraps around.
-func (mc Memcache) Increment(key string, delta uint64) (newValue uint64, err error) {
-
-	operation := func() (err error) {
-		newValue, err = mc.client.Increment(mc.namespace+key, delta)
-		if err == ErrCacheMiss {
-			return backoff.Permanent(err)
-		}
-		return err
-	}
-
-	return newValue, backoff.Retry(operation, mc.getBackoff())
-}
-
-// Decrement atomically decrements key by delta. The return value is
-// the new value after being decremented or an error. If the value
-// didn't exist in memcached the error is ErrCacheMiss. The value in
-// memcached must be an decimal number, or an error will be returned.
-// On underflow, the new value is capped at zero and does not wrap
-// around.
-func (mc Memcache) Decrement(key string, delta uint64) (newValue uint64, err error) {
-
-	operation := func() (err error) {
-		newValue, err = mc.client.Decrement(mc.namespace+key, delta)
-		if err == ErrCacheMiss {
-			return backoff.Permanent(err)
-		}
-		return err
-	}
-
-	return newValue, backoff.Retry(operation, mc.getBackoff())
-}
-
-// Get gets the item for the given key. ErrCacheMiss is returned for a
-// memcache cache miss. The key must be at most 250 bytes in length.
-func (mc Memcache) GetInterface(key string, i interface{}) (err error) {
-
-	var item *Item
-
-	operation := func() (err error) {
-
-		item, err = mc.client.Get(mc.namespace + key)
-		if err == ErrCacheMiss {
-			return backoff.Permanent(err)
-		}
-		return err
-	}
-
-	err = backoff.Retry(operation, mc.getBackoff())
+	val, _, _, err := c.client.Get(c.namespace + key)
 	if err != nil {
 		return err
 	}
 
-	return json.Unmarshal(item.Value, i)
+	return c.decoder(val, out)
 }
 
-// Set writes the given item, unconditionally.
-func (mc Memcache) SetInterface(key string, value interface{}, expiration int32) error {
+func (c Client) Set(key string, value interface{}, seconds uint32) (err error) {
 
-	bytes, err := json.Marshal(value)
+	encoded, err := c.encoder(value)
 	if err != nil {
 		return err
 	}
 
-	item := new(Item)
-	item.Key = mc.namespace + key
-	item.Value = bytes
-	item.Expiration = expiration
-
-	operation := func() (err error) {
-		return mc.client.Set(item)
-	}
-
-	return backoff.Retry(operation, mc.getBackoff())
+	_, err = c.client.Set(c.namespace+key, encoded, 0, seconds, 0)
+	return err
 }
 
-func (mc Memcache) GetSetInterface(key string, expiration int32, value interface{}, f func() (interface{}, error)) error {
+func (c Client) GetSet(key string, seconds uint32, out interface{}, callback func() (interface{}, error)) (err error) {
 
-	if reflect.TypeOf(value).Kind() != reflect.Ptr {
-		return ErrNotPointer
+	if c.typeChecks && reflect.TypeOf(out).Kind() != reflect.Ptr {
+		return ErrInvalidType
 	}
 
-	err := mc.GetInterface(key, value)
+	err = c.Get(key, out)
+	if err == mc.ErrNotFound {
 
-	if err == memcache.ErrCacheMiss || err == io.EOF {
+		var s interface{}
+		var set = true
 
-		s, err := f()
+		s, err = callback()
+		if err == ErrNoSet {
+			set = false
+			err = nil
+		}
 		if err != nil {
 			return err
 		}
 
-		if reflect.TypeOf(s) != reflect.TypeOf(value).Elem() {
-			return errors.New(reflect.TypeOf(s).String() + " does not match " + reflect.TypeOf(value).Elem().String())
+		if c.typeChecks && reflect.TypeOf(s) != reflect.TypeOf(out).Elem() {
+			return errors.New(reflect.TypeOf(s).String() + " does not match " + reflect.TypeOf(out).Elem().String())
 		}
 
-		err = setToPointer(s, value)
+		reflect.ValueOf(out).Elem().Set(reflect.ValueOf(s))
 
-		return mc.SetInterface(key, s, expiration)
+		if !set {
+			return nil
+		}
+
+		return c.Set(key, s, seconds)
 	}
 
 	return err
 }
 
-func setToPointer(in interface{}, out interface{}) error {
+// Delete does not error on missing keys
+func (c Client) Delete(keys ...string) (err error) {
 
-	b, err := json.Marshal(in)
-	if err != nil {
-		return err
+	for _, key := range keys {
+		err = c.client.Del(key)
+		if err != nil && err != mc.ErrNotFound {
+			return err
+		}
 	}
 
-	return json.Unmarshal(b, out)
+	return nil
+}
+
+// DeleteAll does not delete keys, but expires them
+func (c Client) DeleteAll() error {
+
+	return c.client.Flush(0)
 }
