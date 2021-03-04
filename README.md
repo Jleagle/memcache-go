@@ -1,14 +1,25 @@
 # memcache-go
 
-Memcache helper with retries
+Memcache wrapper with helpers.
+
+Supports SASL authentication.
 
 ```go
-func GetWork() (resp WorkResponse, err error) {
+func GetData() (data Data, err error) {
 
-	err = helpers.GetMemcache().GetSetInterface("mem-key", 60, &resp, func() (interface{}, error) {
-		return DoHeavyWork()
-	})
+	client := NewClient("localhost:11211")
 
-	return resp, err
+	callback := func() (interface{}, error) {
+		// Calculate data
+		return Data{Val: 1}, nil
+	}
+
+	data := Data{}
+	err := client.GetSet("data-key", 10, &data, callback)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, err
 }
 ```
