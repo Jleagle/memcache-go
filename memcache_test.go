@@ -56,7 +56,7 @@ func TestGetSet(t *testing.T) {
 		t.Error(err)
 	}
 
-	if test3.Val1 != 1 {
+	if test3.Val1 != 2 {
 		t.Error("val1")
 	}
 
@@ -86,7 +86,7 @@ func TestGetSetNoSet(t *testing.T) {
 		t.Error(err)
 	}
 
-	if test3.Val1 != 1 {
+	if test3.Val1 != 3 {
 		t.Error("val1")
 	}
 
