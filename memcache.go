@@ -49,6 +49,17 @@ func (c Client) Client() *mc.Client {
 	return c.client
 }
 
+// Exists does not return an error when nothing found
+func (c Client) Exists(key string) (exists bool, err error) {
+
+	_, _, _, err = c.client.Get(c.namespace + key)
+	if err != nil && err != mc.ErrNotFound {
+		return false, err
+	}
+
+	return err != mc.ErrNotFound, nil
+}
+
 func (c Client) Get(key string, out interface{}) (err error) {
 
 	if c.typeChecks && reflect.TypeOf(out).Kind() != reflect.Ptr {

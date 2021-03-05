@@ -121,6 +121,15 @@ func TestGetDeleteGet(t *testing.T) {
 		t.Error("val1")
 	}
 
+	// Exists
+	exists, err := client.Exists("key4")
+	if err != nil {
+		t.Error(err)
+	}
+	if !exists {
+		t.Error("exists")
+	}
+
 	// Delete
 	err = client.Delete("key4")
 	if err != nil {
@@ -131,5 +140,14 @@ func TestGetDeleteGet(t *testing.T) {
 	err = client.Get("key4", &test2)
 	if err != mc.ErrNotFound {
 		t.Error(err)
+	}
+
+	// Exists
+	exists, err = client.Exists("key4")
+	if err != nil {
+		t.Error(err)
+	}
+	if exists {
+		t.Error("exists")
 	}
 }
