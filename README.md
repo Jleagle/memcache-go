@@ -1,13 +1,13 @@
-# memcache-go
+# memcache
 
-Memcache wrapper with helpers.
+![example workflow](https://github.com/Jleagle/memcache-go/actions/workflows/test.yml/badge.svg)
 
 Supports SASL authentication.
 
 ```go
 func GetData() (data Data, err error) {
 
-	client := NewClient("localhost:11211")
+	client := memcache.NewClient("localhost:11211")
 
 	callback := func() (interface{}, error) {
 		// Calculate data
