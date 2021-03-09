@@ -1,7 +1,9 @@
 package memcache
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/memcachier/mc/v3"
 )
@@ -14,6 +16,7 @@ type test struct {
 func TestSetGet(t *testing.T) {
 
 	client := NewClient("localhost:11211")
+	key := "TestSetGet-" + fmt.Sprintf("%d", time.Now().UnixNano())
 
 	test1 := test{
 		Val1: 1,
@@ -21,14 +24,14 @@ func TestSetGet(t *testing.T) {
 	}
 
 	// Set
-	err := client.Set("key", test1, 10)
+	err := client.Set(key, test1, 10)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Get
 	test2 := test{}
-	err = client.Get("key", &test2)
+	err = client.Get(key, &test2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -45,13 +48,14 @@ func TestSetGet(t *testing.T) {
 func TestGetSet(t *testing.T) {
 
 	client := NewClient("localhost:11211")
+	key := "TestGetSet-" + fmt.Sprintf("%d", time.Now().UnixNano())
 
 	test3 := test{}
 	callback := func() (interface{}, error) {
 		return test{Val1: 2, Val2: "2"}, nil
 	}
 
-	err := client.GetSet("key2", 10, &test3, callback)
+	err := client.GetSet(key, 10, &test3, callback)
 	if err != nil {
 		t.Error(err)
 	}
@@ -62,7 +66,7 @@ func TestGetSet(t *testing.T) {
 
 	// Get
 	test4 := test{}
-	err = client.Get("key2", &test4)
+	err = client.Get(key, &test4)
 	if err != nil {
 		t.Error(err)
 	}
@@ -75,13 +79,14 @@ func TestGetSet(t *testing.T) {
 func TestGetSetNoSet(t *testing.T) {
 
 	client := NewClient("localhost:11211")
+	key := "TestGetSetNoSet-" + fmt.Sprintf("%d", time.Now().UnixNano())
 
 	test3 := test{}
 	callback := func() (interface{}, error) {
 		return test{Val1: 3, Val2: "3"}, ErrNoSet
 	}
 
-	err := client.GetSet("key3", 10, &test3, callback)
+	err := client.GetSet(key, 10, &test3, callback)
 	if err != nil {
 		t.Error(err)
 	}
@@ -92,7 +97,7 @@ func TestGetSetNoSet(t *testing.T) {
 
 	// Get
 	test4 := test{}
-	err = client.Get("key3", &test4)
+	err = client.Get(key, &test4)
 	if err != mc.ErrNotFound {
 		t.Error(err)
 	}
@@ -101,18 +106,19 @@ func TestGetSetNoSet(t *testing.T) {
 func TestGetDeleteGet(t *testing.T) {
 
 	client := NewClient("localhost:11211")
+	key := "TestGetDeleteGet-" + fmt.Sprintf("%d", time.Now().UnixNano())
 
 	test := "test"
 
 	// Set
-	err := client.Set("key4", test, 10)
+	err := client.Set(key, test, 10)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Get
 	test2 := ""
-	err = client.Get("key4", &test2)
+	err = client.Get(key, &test2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -122,7 +128,7 @@ func TestGetDeleteGet(t *testing.T) {
 	}
 
 	// Exists
-	exists, err := client.Exists("key4")
+	exists, err := client.Exists(key)
 	if err != nil {
 		t.Error(err)
 	}
@@ -131,19 +137,19 @@ func TestGetDeleteGet(t *testing.T) {
 	}
 
 	// Delete
-	err = client.Delete("key4")
+	err = client.Delete(key)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Get
-	err = client.Get("key4", &test2)
+	err = client.Get(key, &test2)
 	if err != mc.ErrNotFound {
 		t.Error(err)
 	}
 
 	// Exists
-	exists, err = client.Exists("key4")
+	exists, err = client.Exists(key)
 	if err != nil {
 		t.Error(err)
 	}

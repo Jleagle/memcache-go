@@ -126,7 +126,7 @@ func (c Client) GetSet(key string, seconds uint32, out interface{}, callback fun
 func (c Client) Delete(keys ...string) (err error) {
 
 	for _, key := range keys {
-		err = c.client.Del(key)
+		err = c.client.Del(c.namespace + key)
 		if err != nil && err != mc.ErrNotFound {
 			return err
 		}
