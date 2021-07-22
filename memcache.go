@@ -110,7 +110,11 @@ func (c Client) GetSet(key string, seconds uint32, out interface{}, callback fun
 			return errors.New(reflect.TypeOf(s).String() + " does not match " + reflect.TypeOf(out).Elem().String())
 		}
 
-		reflect.ValueOf(out).Elem().Set(reflect.ValueOf(s))
+		// If s is nil it panics
+		// todo, set out to empty value if s = nil
+		if s != nil {
+			reflect.ValueOf(out).Elem().Set(reflect.ValueOf(s))
+		}
 
 		if !set {
 			return nil

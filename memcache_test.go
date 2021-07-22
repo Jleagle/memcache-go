@@ -157,3 +157,23 @@ func TestGetDeleteGet(t *testing.T) {
 		t.Error("exists")
 	}
 }
+
+func TestNils(t *testing.T) {
+
+	client := NewClient("localhost:9002")
+	key := "TestTestNils-" + fmt.Sprintf("%d", time.Now().UnixNano())
+
+	var test3 []byte
+	callback := func() (interface{}, error) {
+		return nil, nil
+	}
+
+	err := client.GetSet(key, 10, &test3, callback)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if test3 != nil {
+		t.Error("val1")
+	}
+}
