@@ -139,6 +139,18 @@ func (c Client) Delete(keys ...string) (err error) {
 	return nil
 }
 
+func (c Client) Inc(key string, delta uint64, seconds uint32) (new uint64, err error) {
+
+	new, _, err = c.client.Incr(c.namespace+key, delta, 1, seconds, 0)
+	return new, err
+}
+
+func (c Client) Dec(key string, delta uint64, seconds uint32) (new uint64, err error) {
+
+	new, _, err = c.client.Decr(c.namespace+key, delta, 1, seconds, 0)
+	return new, err
+}
+
 // DeleteAll does not delete keys, but expires them
 func (c Client) DeleteAll() error {
 
