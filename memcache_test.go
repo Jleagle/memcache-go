@@ -51,7 +51,7 @@ func TestGetSet(t *testing.T) {
 	key := "TestGetSet-" + fmt.Sprintf("%d", time.Now().UnixNano())
 
 	test3 := test{}
-	callback := func() (interface{}, error) {
+	callback := func() (any, error) {
 		return test{Val1: 2, Val2: "2"}, nil
 	}
 
@@ -82,7 +82,7 @@ func TestGetSetNoSet(t *testing.T) {
 	key := "TestGetSetNoSet-" + fmt.Sprintf("%d", time.Now().UnixNano())
 
 	test3 := test{}
-	callback := func() (interface{}, error) {
+	callback := func() (any, error) {
 		return test{Val1: 3, Val2: "3"}, ErrNoSet
 	}
 
@@ -164,7 +164,7 @@ func TestNils(t *testing.T) {
 	key := "TestTestNils-" + fmt.Sprintf("%d", time.Now().UnixNano())
 
 	var test3 []byte
-	callback := func() (interface{}, error) {
+	callback := func() (any, error) {
 		return nil, nil
 	}
 

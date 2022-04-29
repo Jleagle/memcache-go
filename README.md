@@ -9,7 +9,7 @@ func GetData() (data Data, err error) {
 
 	client := memcache.NewClient("localhost:11211")
 
-	callback := func() (interface{}, error) {
+	callback := func() (any, error) {
 		// Calculate data
 		return Data{Val: 1}, nil
 	}
