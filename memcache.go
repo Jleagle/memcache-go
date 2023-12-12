@@ -142,7 +142,6 @@ func (c Client) Dec(key string, delta uint64, seconds uint32) (new uint64, err e
 
 // DeleteAll does not delete keys, but expires them
 func (c Client) DeleteAll() error {
-
 	return c.client.Flush(0)
 }
 
