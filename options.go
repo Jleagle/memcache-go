@@ -22,7 +22,7 @@ func WithAuth(username, password string) Option {
 	}
 }
 
-// Use mc.DefaultConfig() as a starting point
+// WithConfig sets extra configs, use mc.DefaultConfig() as a starting point
 func WithConfig(config *Config) Option {
 	return func(l *Client) {
 		l.config = config
