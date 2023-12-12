@@ -97,10 +97,11 @@ func GetSet[T any](c *Client, key string, seconds uint32, out *T, callback func(
 			return err
 		}
 
-		// If s is nil it panics
-		// todo, set out to empty value if s = nil
-		if s != nil {
-			reflect.ValueOf(out).Elem().Set(reflect.ValueOf(s).Elem())
+		outElem := reflect.ValueOf(out).Elem()
+		if s == nil || reflect.ValueOf(s).IsNil() {
+			outElem.Set(reflect.Zero(outElem.Type()))
+		} else {
+			outElem.Set(reflect.ValueOf(s).Elem())
 		}
 
 		if !set {
