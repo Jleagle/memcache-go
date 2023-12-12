@@ -15,7 +15,6 @@ func TestOptions(t *testing.T) {
 		"test",
 		WithAuth("user", "pass"),
 		WithConfig(config),
-		WithTypeChecks(true),
 		WithNamespace("test_"),
 		WithEncoding(StringEncoder, StringDecoder),
 	)
@@ -28,9 +27,6 @@ func TestOptions(t *testing.T) {
 	}
 	if client.config.Retries != 100 {
 		t.Errorf("retries = %d; want 100", client.config.Retries)
-	}
-	if client.typeChecks != true {
-		t.Errorf("typeChecks = %t; want true", client.typeChecks)
 	}
 	if client.namespace != "test_" {
 		t.Errorf("namespace = %s; want 'test_'", client.namespace)

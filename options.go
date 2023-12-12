@@ -28,9 +28,3 @@ func WithConfig(config *Config) Option {
 		l.config = config
 	}
 }
-
-func WithTypeChecks(typeChecks bool) Option {
-	return func(l *Client) {
-		l.typeChecks = typeChecks
-	}
-}

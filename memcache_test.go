@@ -51,11 +51,11 @@ func TestGetSet(t *testing.T) {
 	key := "TestGetSet-" + fmt.Sprintf("%d", time.Now().UnixNano())
 
 	test3 := test{}
-	callback := func() (any, error) {
+	callback := func() (test, error) {
 		return test{Val1: 2, Val2: "2"}, nil
 	}
 
-	err := client.GetSet(key, 10, &test3, callback)
+	err := GetSet(client, key, 10, &test3, callback)
 	if err != nil {
 		t.Error(err)
 	}
@@ -82,11 +82,11 @@ func TestGetSetNoSet(t *testing.T) {
 	key := "TestGetSetNoSet-" + fmt.Sprintf("%d", time.Now().UnixNano())
 
 	test3 := test{}
-	callback := func() (any, error) {
+	callback := func() (test, error) {
 		return test{Val1: 3, Val2: "3"}, ErrNoSet
 	}
 
-	err := client.GetSet(key, 10, &test3, callback)
+	err := GetSet(client, key, 10, &test3, callback)
 	if err != nil {
 		t.Error(err)
 	}
@@ -164,11 +164,11 @@ func TestNils(t *testing.T) {
 	key := "TestTestNils-" + fmt.Sprintf("%d", time.Now().UnixNano())
 
 	var test3 []byte
-	callback := func() (any, error) {
+	callback := func() ([]byte, error) {
 		return nil, nil
 	}
 
-	err := client.GetSet(key, 10, &test3, callback)
+	err := GetSet(client, key, 10, &test3, callback)
 	if err != nil {
 		t.Error(err)
 	}

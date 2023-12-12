@@ -15,15 +15,14 @@ var (
 type Config = mc.Config
 
 type Client struct {
-	client     *mc.Client
-	namespace  string
-	encoder    Encoder
-	decoder    Decoder
-	servers    string // comma, semicolon or space seperated
-	username   string
-	password   string
-	typeChecks bool
-	config     *Config
+	client    *mc.Client
+	namespace string
+	encoder   Encoder
+	decoder   Decoder
+	servers   string // comma, semicolon or space seperated
+	username  string
+	password  string
+	config    *Config
 }
 
 func NewClient(servers string, options ...Option) *Client {
@@ -62,10 +61,6 @@ func (c Client) Exists(key string) (exists bool, err error) {
 
 func (c Client) Get(key string, out any) (err error) {
 
-	if c.typeChecks && reflect.TypeOf(out).Kind() != reflect.Ptr {
-		return ErrInvalidType
-	}
-
 	val, _, _, err := c.client.Get(c.namespace + key)
 	if err != nil {
 		return err
@@ -85,11 +80,7 @@ func (c Client) Set(key string, value any, seconds uint32) (err error) {
 	return err
 }
 
-func (c Client) GetSet(key string, seconds uint32, out any, callback func() (any, error)) (err error) {
-
-	if c.typeChecks && reflect.TypeOf(out).Kind() != reflect.Ptr {
-		return ErrInvalidType
-	}
+func GetSet[T any](c *Client, key string, seconds uint32, out *T, callback func() (T, error)) (err error) {
 
 	err = c.Get(key, out)
 	if err == mc.ErrNotFound {
@@ -104,10 +95,6 @@ func (c Client) GetSet(key string, seconds uint32, out any, callback func() (any
 		}
 		if err != nil {
 			return err
-		}
-
-		if c.typeChecks && reflect.TypeOf(s) != reflect.TypeOf(out).Elem() {
-			return errors.New(reflect.TypeOf(s).String() + " does not match " + reflect.TypeOf(out).Elem().String())
 		}
 
 		// If s is nil it panics
