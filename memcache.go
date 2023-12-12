@@ -7,10 +7,8 @@ import (
 	"github.com/memcachier/mc/v3"
 )
 
-var (
-	ErrInvalidType = errors.New("value must be a pointer")
-	ErrNoSet       = errors.New("") // Use this to tell GetSet() not to Set()
-)
+// ErrNoSet is to tell GetSet() not to Set()
+var ErrNoSet = errors.New("")
 
 type Config = mc.Config
 
@@ -43,13 +41,13 @@ func NewClient(servers string, options ...Option) *Client {
 	return client
 }
 
-// Client gives you access to many other memcache calls, inc, dec etc
-func (c Client) Client() *mc.Client {
+// GetClient gives you access to many other Memcache calls, inc, dec etc
+func GetClient(c *Client) *mc.Client {
 	return c.client
 }
 
 // Exists does not return an error when nothing found
-func (c Client) Exists(key string) (exists bool, err error) {
+func Exists(c *Client, key string) (exists bool, err error) {
 
 	_, _, _, err = c.client.Get(c.namespace + key)
 	if err != nil && !errors.Is(err, mc.ErrNotFound) {
@@ -61,7 +59,7 @@ func (c Client) Exists(key string) (exists bool, err error) {
 	return true, nil
 }
 
-func (c Client) Get(key string, out any) (err error) {
+func Get[T any](c *Client, key string, out *T) (err error) {
 
 	val, _, _, err := c.client.Get(c.namespace + key)
 	if err != nil {
@@ -71,7 +69,7 @@ func (c Client) Get(key string, out any) (err error) {
 	return c.decoder(val, out)
 }
 
-func (c Client) Set(key string, value any, seconds uint32) (err error) {
+func Set(c *Client, key string, value any, seconds uint32) (err error) {
 
 	encoded, err := c.encoder(value)
 	if err != nil {
@@ -82,9 +80,9 @@ func (c Client) Set(key string, value any, seconds uint32) (err error) {
 	return err
 }
 
-func GetSet[T any](c *Client, key string, seconds uint32, out *T, callback func() (T, error)) (err error) {
+func GetSet[T any](c *Client, key string, seconds uint32, out *T, callback func() (*T, error)) (err error) {
 
-	err = c.Get(key, out)
+	err = Get(c, key, out)
 	if errors.Is(err, mc.ErrNotFound) {
 
 		var s any
@@ -102,21 +100,21 @@ func GetSet[T any](c *Client, key string, seconds uint32, out *T, callback func(
 		// If s is nil it panics
 		// todo, set out to empty value if s = nil
 		if s != nil {
-			reflect.ValueOf(out).Elem().Set(reflect.ValueOf(s))
+			reflect.ValueOf(out).Elem().Set(reflect.ValueOf(s).Elem())
 		}
 
 		if !set {
 			return nil
 		}
 
-		return c.Set(key, s, seconds)
+		return Set(c, key, s, seconds)
 	}
 
 	return err
 }
 
 // Delete does not error on missing keys
-func (c Client) Delete(keys ...string) (err error) {
+func Delete(c *Client, keys ...string) (err error) {
 
 	for _, key := range keys {
 		err = c.client.Del(c.namespace + key)
@@ -128,27 +126,27 @@ func (c Client) Delete(keys ...string) (err error) {
 	return nil
 }
 
-func (c Client) Inc(key string, delta uint64, seconds uint32) (new uint64, err error) {
+func Inc(c *Client, key string, delta uint64, seconds uint32) (new uint64, err error) {
 
 	new, _, err = c.client.Incr(c.namespace+key, delta, 1, seconds, 0)
 	return new, err
 }
 
-func (c Client) Dec(key string, delta uint64, seconds uint32) (new uint64, err error) {
+func Dec(c *Client, key string, delta uint64, seconds uint32) (new uint64, err error) {
 
 	new, _, err = c.client.Decr(c.namespace+key, delta, 1, seconds, 0)
 	return new, err
 }
 
 // DeleteAll does not delete keys, but expires them
-func (c Client) DeleteAll() error {
+func DeleteAll(c *Client) error {
 	return c.client.Flush(0)
 }
 
-func (c Client) Ping() error {
+func Ping(c *Client) error {
 	return c.client.NoOp()
 }
 
-func (c Client) Close() {
+func Close(c *Client) {
 	c.client.Quit()
 }

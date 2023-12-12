@@ -25,14 +25,14 @@ func TestSetGet(t *testing.T) {
 	}
 
 	// Set
-	err := client.Set(key, test1, 10)
+	err := Set(client, key, test1, 10)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Get
 	test2 := test{}
-	err = client.Get(key, &test2)
+	err = Get(client, key, &test2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -52,8 +52,8 @@ func TestGetSet(t *testing.T) {
 	key := "TestGetSet-" + fmt.Sprintf("%d", time.Now().UnixNano())
 
 	test3 := test{}
-	callback := func() (test, error) {
-		return test{Val1: 2, Val2: "2"}, nil
+	callback := func() (*test, error) {
+		return &test{Val1: 2, Val2: "2"}, nil
 	}
 
 	err := GetSet(client, key, 10, &test3, callback)
@@ -67,7 +67,7 @@ func TestGetSet(t *testing.T) {
 
 	// Get
 	test4 := test{}
-	err = client.Get(key, &test4)
+	err = Get(client, key, &test4)
 	if err != nil {
 		t.Error(err)
 	}
@@ -83,8 +83,8 @@ func TestGetSetNoSet(t *testing.T) {
 	key := "TestGetSetNoSet-" + fmt.Sprintf("%d", time.Now().UnixNano())
 
 	test3 := test{}
-	callback := func() (test, error) {
-		return test{Val1: 3, Val2: "3"}, ErrNoSet
+	callback := func() (*test, error) {
+		return &test{Val1: 3, Val2: "3"}, ErrNoSet
 	}
 
 	err := GetSet(client, key, 10, &test3, callback)
@@ -98,7 +98,7 @@ func TestGetSetNoSet(t *testing.T) {
 
 	// Get
 	test4 := test{}
-	err = client.Get(key, &test4)
+	err = Get(client, key, &test4)
 	if !errors.Is(err, mc.ErrNotFound) {
 		t.Error(err)
 	}
@@ -112,14 +112,14 @@ func TestGetDeleteGet(t *testing.T) {
 	test := "test"
 
 	// Set
-	err := client.Set(key, test, 10)
+	err := Set(client, key, test, 10)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Get
 	test2 := ""
-	err = client.Get(key, &test2)
+	err = Get(client, key, &test2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -129,7 +129,7 @@ func TestGetDeleteGet(t *testing.T) {
 	}
 
 	// Exists
-	exists, err := client.Exists(key)
+	exists, err := Exists(client, key)
 	if err != nil {
 		t.Error(err)
 	}
@@ -138,19 +138,19 @@ func TestGetDeleteGet(t *testing.T) {
 	}
 
 	// Delete
-	err = client.Delete(key)
+	err = Delete(client, key)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Get
-	err = client.Get(key, &test2)
+	err = Get(client, key, &test2)
 	if !errors.Is(err, mc.ErrNotFound) {
 		t.Error(err)
 	}
 
 	// Exists
-	exists, err = client.Exists(key)
+	exists, err = Exists(client, key)
 	if err != nil {
 		t.Error(err)
 	}
@@ -165,7 +165,7 @@ func TestNils(t *testing.T) {
 	key := "TestTestNils-" + fmt.Sprintf("%d", time.Now().UnixNano())
 
 	var test3 []byte
-	callback := func() ([]byte, error) {
+	callback := func() (*[]byte, error) {
 		return nil, nil
 	}
 
