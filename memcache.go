@@ -52,11 +52,13 @@ func (c Client) Client() *mc.Client {
 func (c Client) Exists(key string) (exists bool, err error) {
 
 	_, _, _, err = c.client.Get(c.namespace + key)
-	if err != nil && err != mc.ErrNotFound {
+	if err != nil && !errors.Is(err, mc.ErrNotFound) {
 		return false, err
 	}
-
-	return err != mc.ErrNotFound, nil
+	if errors.Is(err, mc.ErrNotFound) {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (c Client) Get(key string, out any) (err error) {
@@ -83,13 +85,13 @@ func (c Client) Set(key string, value any, seconds uint32) (err error) {
 func GetSet[T any](c *Client, key string, seconds uint32, out *T, callback func() (T, error)) (err error) {
 
 	err = c.Get(key, out)
-	if err == mc.ErrNotFound {
+	if errors.Is(err, mc.ErrNotFound) {
 
 		var s any
 		var set = true
 
 		s, err = callback()
-		if err == ErrNoSet {
+		if errors.Is(err, ErrNoSet) {
 			set = false
 			err = nil
 		}
@@ -118,7 +120,7 @@ func (c Client) Delete(keys ...string) (err error) {
 
 	for _, key := range keys {
 		err = c.client.Del(c.namespace + key)
-		if err != nil && err != mc.ErrNotFound {
+		if err != nil && !errors.Is(err, mc.ErrNotFound) {
 			return err
 		}
 	}

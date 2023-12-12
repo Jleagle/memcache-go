@@ -1,6 +1,7 @@
 package memcache
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -98,7 +99,7 @@ func TestGetSetNoSet(t *testing.T) {
 	// Get
 	test4 := test{}
 	err = client.Get(key, &test4)
-	if err != mc.ErrNotFound {
+	if !errors.Is(err, mc.ErrNotFound) {
 		t.Error(err)
 	}
 }
@@ -144,7 +145,7 @@ func TestGetDeleteGet(t *testing.T) {
 
 	// Get
 	err = client.Get(key, &test2)
-	if err != mc.ErrNotFound {
+	if !errors.Is(err, mc.ErrNotFound) {
 		t.Error(err)
 	}
 
