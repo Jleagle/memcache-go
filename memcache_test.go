@@ -161,7 +161,7 @@ func TestGetDeleteGet(t *testing.T) {
 
 func TestNils(t *testing.T) {
 
-	client := NewClient("localhost:9002")
+	client := NewClient("localhost:11211")
 	key := "TestTestNils-" + fmt.Sprintf("%d", time.Now().UnixNano())
 
 	var test3 []byte
